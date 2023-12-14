@@ -10,6 +10,13 @@ const srv = express();
 // Declaração da porta do servidor 
 srv.listen(3030, () => {console.log ("Conectado na porta 3030")});
 
+// Chamada de confirmação com Google
+require ('./auth');
+const passport = require('passport');
+
+const session = require('express-session');
+
+
 // Criação do banco de dados
 const db = new sqlite3.Database ("./bancoDeDados.db", erro);
 
@@ -29,18 +36,46 @@ db.run (`CREATE TABLE IF NOT EXISTS locais (id_local INTEGER PRIMARY KEY, tipo_l
 // Criação da tabela avaliações com chave estrangeira para tabela locais e cadastos
 db.run (`CREATE TABLE IF NOT EXISTS avaliacoes (id_avaliacao INTEGER PRIMARY KEY, id_cadastro NUMBER NOT NULL, numero_estrelas NUMBER, mensagem STRING, id_local NUMBER NOT NULL, FOREIGN KEY (id_cadastro) REFERENCES cadastros(id_cadastro), FOREIGN KEY (id_local) REFERENCES locais(id_local))`);
 
+srv.use (session({ secret: "cats" }))
+srv.use(passport.initialize());
+srv.use(passport.session());
 
 srv.get ("/", (req, res) => {
     res.send(`<a href="/auth/google">Entrar com Google</a>`);
 })
 
-srv.get ("/protegido", (req, res) => {
-    res.send ("Olá! 👋");
+srv.get ("/auth/google", passport.authenticate('google', {scope: ["email", "profile", ] }))
+
+srv.get ("/google/callback", 
+    passport.authenticate("google", {
+        successRedirect: "/protegido",
+        failureRedirect: "/auth/falha",
+    })
+);
+
+function estaLogado (req, res, next) {
+    req.user ? next() : res.sendStatus (401); 
+}
+
+srv.get ("auth/falha", (req, res) => {
+    res.send ("<h1>ops.. Algo deu errado</h1>")
+})
+
+srv.get ("/protegido", estaLogado, (req, res) => {
+    res.send (`
+    
+    Olá! 👋 ${req.user.displayName}
+    nb
+    <a href="/logout">Sair</a>
+    `);
 })
 
 
-
-
+srv.get("/logout", (req, res) => {
+    //req.logout();
+    req.session.destroy();
+    res.send("Adeus...");
+},)
 
 
 
