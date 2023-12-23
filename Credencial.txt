@@ -1,6 +1,1 @@
 https://console.cloud.google.com/apis/dashboard?project=search-and-see&supportedpurview=project
-
-
-
-
-https://www.passportjs.org/packages/passport-google-oauth/  <-- Documentação da blilbioteca
